@@ -1,0 +1,9 @@
+name: Deploy
+run-name: Deploy PR ${{ inputs.apply_pr_number }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply_pr_number:
+        descripton: 'The PR Number of terraform apply'
+        required: true
