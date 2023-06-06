@@ -7,3 +7,20 @@ on:
       apply_pr_number:
         descripton: 'The PR Number of terraform apply'
         required: true
+
+jobs:
+  terragrunt_workdirs:
+    name: 'Terragrunt WorkDir'
+    runs-on: terraform-apply
+    container:
+      image: alpine:latest
+    steps:
+      - name: Installing prereq packages 
+        run: apk add --no-cache curl jq
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+          run: echo "$GITHUB_CONTEXT"
