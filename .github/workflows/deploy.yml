@@ -9,58 +9,35 @@ on:
         required: true
 
 jobs:
-  terragrunt_workdirs:
-    name: 'Terragrunt WorkDir'
+  terraform_apply:
+    name: 'Terraform Apply'
     runs-on: ubuntu-latest
     container:
       image: alpine:latest
     steps:
       - name: Installing prereq packages 
-        run: apk add --no-cache curl jq
-      - uses: actions/checkout@v3
+        run: apk add --no-cache curl jq unzip
+      - name: Checkout bgr-terraform repository
+        uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.inputs.apply_pr_number }}
+          repository: BGR-InfraData/bgr-terraform
+          token: ${{ secrets.PAT }} # Substitute PAT with your secret containing the Personal Access Token
           fetch-depth: 0
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJSON(github) }}
-        run: echo "$GITHUB_CONTEXT"
-
-  terragrunt_apply:
-    needs: ["terragrunt_workdirs"]
-    name: 'Terragrunt Apply'
-    runs-on: ubuntu-latest
-    if: needs.terragrunt_workdirs.outputs.terragrunt_workdirs != 'no_workdirs'
-    container:
-      image: alpine:latest
-    steps:
-      - name: Installing prereq packages and IaC Tools
+      - name: Install Terraform
         run: |
-          apk add --no-cache bash curl jq git unzip python python-dev py-pip build-base
-          pip install awscli
-          rm -rf /var/cache/apk/*
           TERRAFORM_VERSION=1.3.4
           curl https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip -o terraform_${TERRAFORM_VERSION}_linux_amd64.zip
           unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin
-          cp ./binary/terragrunt.v0.39.1 /usr/local/bin/terragrunt
           terraform -v
-          terragrunt -v
-
       - name: Configure AWS CLI
         run: |
+          apk add --no-cache python3 py3-pip
+          pip3 install awscli
           aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws configure set default.region ${{ secrets.AWS_DEFAULT_REGION }}
-
-      - name: Terragrunt apply
+      - name: Terraform Init and Apply
         run: |
-          cd /path/to/your/code
-          terragrunt apply -auto-approve
-
-      - name: Trigger deployment
-        run: |
-          curl -X POST \
-          -H "Authorization: token ${{ secrets.PAT }}" \
-          -H "Accept: application/vnd.github.everest-preview+json" \
-          https://api.github.com/repos/BGR-InfraData/data-scope-x/dispatches \
-          --data '{"event_type": "deploy"}'
+          cd .
+          terraform init
+          terraform apply -auto-approve
