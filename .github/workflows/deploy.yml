@@ -57,7 +57,7 @@ jobs:
           cd /path/to/your/code
           terragrunt apply -auto-approve
 
-       - name: Trigger deployment
+      - name: Trigger deployment
         run: |
               curl -X POST \
               -H "Authorization: token ${{ secrets.PAT }}" \
